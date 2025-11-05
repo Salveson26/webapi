@@ -7,7 +7,7 @@ app.use(express.json());
 app.use(cors());
 
 const GEMINI_API_KEY = 'AIzaSyA0yTr1uc-voEbiJizWFcSMvhsU6QWj2Bc';
-const MODEL = 'gemini-1.5-flash';
+const MODEL = 'models/gemini-2.5-flash';
 
 app.post('/gemini', async (req, res) => {
   const contents = req.body.contents;
@@ -15,16 +15,19 @@ app.post('/gemini', async (req, res) => {
     return res.status(400).json({ error: 'Missing or invalid contents array' });
   }
 
+  console.log('Incoming payload:', JSON.stringify(req.body, null, 2));
+
   try {
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       req.body,
       { headers: { 'Content-Type': 'application/json' } }
     );
+
     const reply = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Gemini.';
     res.json({ reply });
   } catch (err) {
-    console.error('Gemini API error:', err.message);
+    console.error('Gemini API error:', err.response?.data || err.message);
     res.status(500).json({ error: 'Failed to reach Gemini API' });
   }
 });
