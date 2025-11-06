@@ -21,10 +21,33 @@ app.post('/gemini', async (req, res) => {
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       req.body,
-      { headers: { 'Content-Type': 'application/json' } }
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 10000 // 10 seconds
+      }
     );
 
-    const reply = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Gemini.';
+    console.log('Raw Gemini response:', JSON.stringify(response.data, null, 2));
+
+    const candidates = response.data?.candidates;
+    if (!candidates || !Array.isArray(candidates) || candidates.length === 0) {
+      console.warn('No candidates in Gemini response:', response.data);
+      return res.json({ reply: 'No reply found.' });
+    }
+
+    const parts = candidates[0]?.content?.parts;
+    if (!parts || !Array.isArray(parts) || parts.length === 0) {
+      console.warn('No parts in Gemini response:', response.data);
+      return res.json({ reply: 'No reply found.' });
+    }
+
+    const reply = parts[0]?.text || 'No reply found.';
+
+    // Optional debug mode: return raw response if ?debug=true
+    if (req.query.debug === 'true') {
+      return res.json({ raw: response.data });
+    }
+
     res.json({ reply });
   } catch (err) {
     console.error('Gemini API error:', err.response?.data || err.message);
